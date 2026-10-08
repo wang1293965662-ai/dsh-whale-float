@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>鲸鱼娘 · DeepSeek 余额</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(120% 90% at 50% 0%,#dff0ff 0%,#eef4ff 45%,#e8ecff 100%);
+    display:flex;align-items:center;justify-content:center;
+    font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+    overflow:hidden;user-select:none;
+  }
+  .stage{position:relative;width:min(92vw,420px);display:flex;flex-direction:column;align-items:center;transform:translateY(2vh)}
+
+  /* ── 气泡 ── */
+  .bubble{
+    position:relative;background:#fff;border-radius:22px;padding:14px 22px 13px;
+    box-shadow:0 10px 30px rgba(80,120,220,.18),0 2px 6px rgba(80,120,220,.10);
+    text-align:center;min-width:190px;
+    animation:pop .5s cubic-bezier(.2,1.4,.4,1) both, float 3.2s ease-in-out infinite .5s;
+  }
+  .bubble::after{
+    content:"";position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);
+    width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;
+    border-top:12px solid #fff;
+  }
+  .bubble .lbl{font-size:12px;color:#7b8bb0;letter-spacing:.14em;margin-bottom:3px}
+  .bubble .amt{font-size:34px;font-weight:800;color:#2f5fd0;letter-spacing:-.5px;line-height:1.05;font-variant-numeric:tabular-nums}
+  .bubble .sub{font-size:11px;color:#93a1c0;margin-top:4px}
+  .bubble.err .amt{font-size:20px;color:#d0555f}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34c759;margin-right:5px;vertical-align:1px;box-shadow:0 0 0 0 rgba(52,199,89,.6);animation:pulse 2s infinite}
+  .dot.off{background:#c9ced9;box-shadow:none;animation:none}
+
+  /* ── 鲸鱼娘 ── */
+  .girl{width:100%;max-width:330px;margin-top:14px;animation:bob 3.4s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+  @keyframes pop{from{opacity:0;transform:scale(.7) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,199,89,.55)}70%{box-shadow:0 0 0 9px rgba(52,199,89,0)}100%{box-shadow:0 0 0 0 rgba(52,199,89,0)}}
+  @keyframes blink{0%,92%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
+  @keyframes wag{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(6deg)}}
+  @keyframes wag2{0%,100%{transform:rotate(6deg)}50%{transform:rotate(-5deg)}}
+  .eye{transform-origin:center;animation:blink 5.2s infinite}
+  .flukeL{transform-origin:150px 300px;animation:wag 2.6s ease-in-out infinite}
+  .flukeR{transform-origin:150px 300px;animation:wag2 2.6s ease-in-out infinite}
+  /* ── 峰谷价标 ── */
+  .peak{margin-top:8px;display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;letter-spacing:.03em;white-space:nowrap}
+  .badge.off{background:#e4f7ea;color:#1c8a45;border:1px solid #b6e6c5}
+  .badge.on{background:#fdeee1;color:#b0650f;border:1px solid #f2d2aa}
+  .ptxt{font-size:11px;color:#8b99b8}
+  .cd{font-size:10.5px;color:#a8b3cc;margin-top:3px;font-variant-numeric:tabular-nums}
+  .hint{position:fixed;bottom:max(14px,env(safe-area-inset-bottom));font-size:11px;color:#a8b3cc;letter-spacing:.05em}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="bubble" id="bubble">
+    <div class="lbl">DEEPSEEK 余额</div>
+    <div class="amt" id="amt">— —</div>
+    <div class="sub" id="sub"><span class="dot" id="dot"></span><span id="subtxt">正在查询…</span></div>
+    <div class="peak"><span class="badge" id="pbadge">—</span><span class="ptxt" id="ptxt"></span></div>
+    <div class="cd" id="cd"></div>
+  </div>
+
+  <svg class="girl" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="whale" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#6ea2f7"/><stop offset="1" stop-color="#4a7fe0"/>
+      </linearGradient>
+      <linearGradient id="hairG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#8fc0ff"/><stop offset="1" stop-color="#6aa5f5"/>
+      </linearGradient>
+      <radialGradient id="blush"><stop offset="0" stop-color="#ffb3c1" stop-opacity=".85"/><stop offset="1" stop-color="#ffb3c1" stop-opacity="0"/></radialGradient>
+    </defs>
+
+    <!-- 尾鳍（在身后，会摆） -->
+    <g class="flukeL"><path d="M150 300 C110 268 84 236 92 210 C104 226 128 246 150 262 Z" fill="#5b91ea"/></g>
+    <g class="flukeR"><path d="M150 300 C190 268 216 236 208 210 C196 226 172 246 150 262 Z" fill="#6ea2f7"/></g>
+
+    <!-- 身体：鲸鱼卫衣 -->
+    <ellipse cx="150" cy="330" rx="80" ry="66" fill="url(#whale)"/>
+    <path d="M92 336 C104 372 196 372 208 336 C196 356 104 356 92 336 Z" fill="#dceaff" opacity=".9"/>
+    <!-- 小鳍 -->
+    <path d="M74 322 C44 330 40 352 62 358 C56 342 62 330 74 322 Z" fill="#5b91ea"/>
+    <path d="M226 322 C256 330 260 352 238 358 C244 342 238 330 226 322 Z" fill="#5b91ea"/>
+
+    <!-- 兜帽领口 -->
+    <path d="M96 292 C112 316 188 316 204 292 C198 320 102 320 96 292 Z" fill="#3f70cf"/>
+
+    <!-- 头 -->
+    <circle cx="150" cy="238" r="62" fill="#ffe3d3"/>
+    <!-- 头发：刘海 -->
+    <path d="M88 236 C88 186 118 168 150 168 C182 168 212 186 212 236 C212 214 196 200 176 202 C168 186 150 180 138 192 C126 186 110 194 104 210 C96 214 90 222 88 236 Z" fill="url(#hairG)"/>
+    <!-- 呆毛 -->
+    <path d="M148 170 C142 146 158 138 168 128 C158 142 166 152 176 156 C164 158 154 162 148 170 Z" fill="#8fc0ff"/>
+    <!-- 鲸鱼耳鳍（帽子两侧） -->
+    <path d="M90 244 C68 236 62 258 80 268 C82 256 84 248 90 244 Z" fill="#4a7fe0"/>
+    <path d="M210 244 C232 236 238 258 220 268 C218 256 216 248 210 244 Z" fill="#4a7fe0"/>
+
+    <!-- 眼 -->
+    <g class="eye">
+      <ellipse cx="126" cy="244" rx="11" ry="13.5" fill="#2a3550"/>
+      <ellipse cx="174" cy="244" rx="11" ry="13.5" fill="#2a3550"/>
+      <circle cx="130" cy="239" r="4.2" fill="#fff"/>
+      <circle cx="178" cy="239" r="4.2" fill="#fff"/>
+      <circle cx="122" cy="249" r="2.1" fill="#fff" opacity=".75"/>
+      <circle cx="170" cy="249" r="2.1" fill="#fff" opacity=".75"/>
+    </g>
+    <!-- 腮红 -->
+    <ellipse cx="108" cy="262" rx="15" ry="10" fill="url(#blush)"/>
+    <ellipse cx="192" cy="262" rx="15" ry="10" fill="url(#blush)"/>
+    <!-- 嘴 -->
+    <path d="M143 266 Q150 275 157 266" stroke="#b5646f" stroke-width="3" fill="none" stroke-linecap="round"/>
+
+    <!-- 小手 -->
+    <circle cx="100" cy="330" r="15" fill="#ffe3d3"/>
+    <circle cx="200" cy="330" r="15" fill="#ffe3d3"/>
+  </svg>
+</div>
+<div class="hint">每 60 秒自动刷新 · 点一下立即刷新 · 峰谷按北京时间</div>
+
+<script>
+const fmt = n => '¥' + (n ?? 0).toFixed(2);
+
+/* ── 峰谷价显示 ── */
+let pk = null;   // { offPeak, label, untilLabel, untilMs }
+function renderPeak(p){
+  const badge = document.getElementById('pbadge');
+  const ptxt = document.getElementById('ptxt');
+  const cd = document.getElementById('cd');
+  if(!p){ badge.textContent = '—'; ptxt.textContent = ''; cd.textContent = ''; pk = null; return; }
+  pk = { offPeak: p.offPeak, label: p.label, untilLabel: p.untilLabel, untilMs: p.until ? Date.parse(p.until) : null };
+  badge.textContent = (p.offPeak ? '🌙 ' : '☀️ ') + p.label;
+  badge.className = 'badge ' + (p.offPeak ? 'off' : 'on');
+  ptxt.textContent = p.priceNote + ' · 北京 ' + (p.bjClock || '');
+  tickPeak();
+}
+function tickPeak(){
+  const cd = document.getElementById('cd');
+  if(!pk || !pk.untilMs){ if(cd) cd.textContent = ''; return; }
+  const left = pk.untilMs - Date.now();
+  if(left <= 0){ cd.textContent = '正在切换…'; refresh(); return; }
+  const h = Math.floor(left / 3600000);
+  const m = Math.floor((left % 3600000) / 60000);
+  const sec = Math.floor((left % 60000) / 1000);
+  cd.textContent = '距' + pk.untilLabel + ' ' + (h ? h + '时' : '') + m + '分' + String(sec).padStart(2,'0') + '秒';
+}
+setInterval(tickPeak, 1000);
+async function refresh(){
+  const amt = document.getElementById('amt');
+  const sub = document.getElementById('subtxt');
+  const dot = document.getElementById('dot');
+  const bub = document.getElementById('bubble');
+  try{
+    const r = await fetch('/balance', {cache:'no-store'});
+    const d = await r.json();
+    if(!d.ok) throw new Error(d.error || '查询失败');
+    amt.textContent = fmt(d.total);
+    bub.classList.remove('err');
+    dot.classList.toggle('off', !d.available);
+    sub.textContent = (d.available ? '正常 ' : '不可用 ') + new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    renderPeak(d.peak);
+  }catch(e){
+    amt.textContent = '查询失败';
+    bub.classList.add('err');
+    dot.classList.add('off');
+    sub.textContent = e.message;
+    renderPeak(null);
+  }
+}
+document.body.addEventListener('click', refresh);
+refresh();
+setInterval(refresh, 60000);
+</script>
+</body>
+</html>
