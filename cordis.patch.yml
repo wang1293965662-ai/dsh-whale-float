@@ -1,0 +1,4 @@
+# 把鲸鱼娘浮窗的 client 入口插进 dsh web 插件花名册。
+- insert:
+    - id: ui-pet-float
+      name: 'dsh-whale-float'
